@@ -13,14 +13,13 @@
 # you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
-title: The Human Machine Interface
-email: h0mbre.pwn@gmail.com
+title: pureGavin's blog
+# email: h0mbre.pwn@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
   fuzzing + exploitation
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "https://h0mbre.github.io" # the base hostname & protocol for your site, e.g. http://example.com
-twitter_username: h0mbre_
-github_username:  h0mbre
+url: "https://puregavin.github.io" # the base hostname & protocol for your site, e.g. http://example.com
+github_username:  pureGavin
 
 # Build settings
 markdown: kramdown
@@ -28,6 +27,10 @@ theme: minima
 plugins:
   - jekyll-feed
   - jekyll-seo-tag
+
+# jekyll-paginate
+paginate: 5
+paginate_path: "/blog/page:num/"
 
 assets:
   css:
