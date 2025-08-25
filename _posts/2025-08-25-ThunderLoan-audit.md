@@ -324,4 +324,4 @@ Results show actual fee is much lower than expected due to price manipulation. H
 
 # Summary
 
-This contract audit is relatively difficult because of the abundant contract code and its integration with `TSwap`. Beyond exploit code, no suspicious detail or variable should be overlooked during auditing, as each line might unpredictably affect the contract.
+This contract audit is relatively difficult because of the abundant contract code and its integration with `TSwap`. Beyond exploit code, no suspicious detail or variable should be overlooked during auditing, as each line might unpredictably affect the contract. This article only covers high-risk and medium-risk vulnerabilities. I have uploaded all other review content [here](https://github.com/pureGavin/codehawks/blob/main/ThunderLoan/report.pdf).
