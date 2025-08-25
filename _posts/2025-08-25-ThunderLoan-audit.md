@@ -18,6 +18,7 @@ Before manual auditing, it is very necessary to scan the project using tools lik
 
 The article begins with two important functions in `ThunderLoan`: `deposit` and `redeem`. These are used for deposits and redemptions respectively. However, in `ThunderLoanTest.t.sol` there are tests only for `deposit` but none for `redeem`. The test logic is actually simple: just call `redeem` after performing a `FlashLoan`.
 
+
 ```javascript
     function testRedeem() public setAllowedToken hasDeposits {
         uint256 amountToBorrow = AMOUNT * 10;
@@ -37,7 +38,9 @@ The article begins with two important functions in `ThunderLoan`: `deposit` and 
 [FAIL: ERC20InsufficientBalance(0xa38D17ef017A314cCD72b8F199C0e108EF7Ca04c, 1000300000000000000000 [1e21], 1003300900000000000000 [1.003e21])] testRedeem() (gas: 1786921)
 ```
 
+
 From the execution result, the actual `redeem` amount is slightly higher than expected. Since we only deposited `1000e18` to the contract, redeeming fails with an error. The key is the discrepancy between the actual and expected redeemed amount. According to the contract documentation, it is roughly as follows:
+
 
 ```shell
  Expected redeem amount: 1000.3e18 [1e21]
@@ -48,6 +51,7 @@ From the execution result, the actual `redeem` amount is slightly higher than ex
 In this example, an additional `9e14` fee is included. Since the fee update happens in `deposit`, this vulnerability will inevitably be triggered, causing the ThunderLoan fee to increase so much that even spending all the pool’s balance cannot redeem the full amount.
 
 This coding appears to be erroneous because there is no comment in `deposit` clarifying why the fee is calculated during deposit. To fix this vulnerability, simply remove the following code:
+
 
 ```diff
     function deposit(IERC20 token, uint256 amount) external revertIfZero(amount) revertIfNotAllowedToken(token) {
@@ -63,9 +67,11 @@ This coding appears to be erroneous because there is no comment in `deposit` cla
     }
 ```
 
+
 ## Incorrect revert Condition Causes Entire Balance Loss
 
 At the end of the `flashloan` function, there is a condition:
+
 
 ```javascript
         uint256 endingBalance = token.balanceOf(address(assetToken));
@@ -74,9 +80,11 @@ At the end of the `flashloan` function, there is a condition:
         }
 ```
 
+
 This logic itself is not wrong, but since the `deposit` function does not check whether a loan is ongoing, users can deposit during an active loan, artificially triggering this revert and causing a complete loss of balance.
 
 The exploitation process is split into two parts: first, a contract is created whose main functions are to deposit and then attempt to redeem (triggering the vulnerability); second, the main test contract creates a function to execute the full exploit flow.
+
 
 ```javascript
 contract DepositOverRepay is IFlashLoanReceiver {
@@ -103,6 +111,7 @@ contract DepositOverRepay is IFlashLoanReceiver {
 }
 ```
 
+
 ```javascript
     function testDepositOverRepay() public setAllowedToken hasDeposits {
         vm.startPrank(user);
@@ -121,17 +130,20 @@ contract DepositOverRepay is IFlashLoanReceiver {
     }
 ```
 
+
 ```shell
 Logs:
   balance of dor is:  50157185829891086986
   balance of dor should be:  50150000000000000000
 ```
 
+
 The output shows `dor` has more than expected, confirming the vulnerability is correctly triggered.
 
 ## Don’t Arbitrarily Change Variable Order When Upgrading Contracts
 
 The third critical vulnerability appears during `ThunderLoan` upgrade. A simple comparison of the variable declarations in `ThunderLoan.sol` and `ThunderLoanUpgraded.sol` reveals a severe issue:
+
 
 ```solidity
     // ThunderLoan.sol
@@ -143,7 +155,9 @@ The third critical vulnerability appears during `ThunderLoan` upgrade. A simple 
     uint256 public constant FEE_PRECISION = 1e18;
 ```
 
+
 Because the storage layout is fixed upon deployment, if the variable declaration order is changed during upgrade, variables’ actual values will misalign with their names, leading to unexpected runtime errors. The severity depends on the variable functionality. For `ThunderLoan`, it results in fee miscalculations.
+
 
 ```javascript
     function testUpgrade() public {
@@ -166,11 +180,13 @@ Logs:
   fee after upgrade is:   1000000000000000000
 ```
 
+
 From the logs, fee changed from `3e15` to `1e18`. This change is permanent after upgrade, causing all future loans to charge the higher fee, making it highly destructive.
 
 ## Price Oracle Manipulation
 
 During manual audit of the `flashloan` function, it is found that `fee` is calculated via the internal `getCalculatedFee` function, which calls a function inside `TSwap`. This introduces the possibility of price oracle manipulation:
+
 
 ```solidity
     function flashloan(
@@ -191,6 +207,7 @@ During manual audit of the `flashloan` function, it is found that `fee` is calcu
     }
 ```
 
+
 Imagine an attacker injects large amounts into the `TSwap` pool, manipulating its price ratio, thereby affecting the fee. `ThunderLoan` trusts `TSwap`’s calculation blindly.
 
 The exploitation process might be:
@@ -206,7 +223,8 @@ The exploitation process might be:
 
 Example malicious receiver contract:
 
-```solidity
+
+```javascript
 contract MaliciousFlashLoanReceiver is IFlashLoanReceiver {
     ThunderLoan thunderLoan;
     address repayAddress;
@@ -241,9 +259,11 @@ contract MaliciousFlashLoanReceiver is IFlashLoanReceiver {
 }
 ```
 
+
 Test demonstrating oracle manipulation:
 
-```solidity
+
+```javascript
     function testOracleManipulation() public {
         thunderLoan = new ThunderLoan();
         tokenA = new ERC20Mock();
@@ -292,11 +312,13 @@ Test demonstrating oracle manipulation:
     }
 ```
 
+
 ```shell
 Logs:
   normalFee is:  296147410319118389
   attackFee is:  214167600932190305
 ```
+
 
 Results show actual fee is much lower than expected due to price manipulation. However, as only the fee is affected and not the pool balance, the risk is medium at most.
 
