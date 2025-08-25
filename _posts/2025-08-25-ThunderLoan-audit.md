@@ -1,3 +1,13 @@
+---
+layout: post
+title: "ThunderLoan audit"
+date: 2025-08-25
+classes: wide
+tags:
+  - web3
+  - audit
+---
+
 > This Article Records My Learning Experience in Smart Contract Security Auditing Routine Checks
 
 Before manual auditing, it is very necessary to scan the project using tools like Slither and Aderyn. Many issues can be detected by automated tools, which greatly reduce the workload of manual auditing. Do not hesitate to use these tools. Since their usage is straightforward and no significant issues were found, details are omitted here.
