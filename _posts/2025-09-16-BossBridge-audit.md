@@ -1,3 +1,13 @@
+---
+layout: post
+title: "BossBridge audit"
+date: 2025-09-16
+classes: wide
+tags:
+  - web3
+  - audit
+---
+
 _This article mainly records the questions and gains I encountered while learning smart contract security auditing._
 
 # Routine Checks
